@@ -18,6 +18,49 @@ st.caption("文王卦序 · 个人解卦笔记 · 一键导出 Markdown")
 # load_gua_data() 函数
 
 # （如果缺少，回复“完整展开版”我立刻给你全部展开好的 3000+ 行代码）
+NOTES_FILE = "user_gua_notes.json"
+
+def load_user_notes():
+    """加载用户备注（支持多条历史 + 旧格式自动迁移）"""
+    if os.path.exists(NOTES_FILE):
+        with open(NOTES_FILE, 'r', encoding='utf-8') as f:
+            raw = json.load(f)
+        notes = {}
+        for k, v in raw.items():
+            if isinstance(v, str):                    # 旧版单条字符串 → 转为列表
+                notes[k] = [{"timestamp": "2025-迁移旧记录", "note": v}]
+            elif isinstance(v, list):
+                notes[k] = v
+            else:
+                notes[k] = []
+        return notes
+    return {}
+
+def save_user_notes(notes):
+    """保存（列表格式）"""
+    with open(NOTES_FILE, 'w', encoding='utf-8') as f:
+        json.dump(notes, f, ensure_ascii=False, indent=2)
+
+
+def export_to_markdown(history_list):
+    """导出为 Markdown 文件"""
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H%M")
+    filename = f"我的易经打卦日记_{timestamp}.md"
+
+    with open(filename, 'w', encoding='utf-8') as f:
+        f.write("# 我的易经打卦日记\n\n")
+        f.write(f"**导出时间**：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+        f.write(f"**总记录数**：{len(history_list)} 条\n\n")
+        f.write("---\n\n")
+
+        for h in history_list:
+            f.write(f"### {h['timestamp']}　{h['gua']}（{h['symbol']}） 第{h['line']}爻\n")
+            f.write(f"**备注**：\n{h['note']}\n\n")
+            f.write("---\n\n")
+
+    print(f"✅ 已成功导出为 Markdown 文件：\n   {filename}")
+    print("   （可直接用 Obsidian/Notion/Notepad 打开查看）")
+# 地支转数字
 branch_to_num = {
     "子": 1, "丑": 2, "寅": 3, "卯": 4, "辰": 5, "巳": 6,
     "午": 7, "未": 8, "申": 9, "酉": 10, "戌": 11, "亥": 12
