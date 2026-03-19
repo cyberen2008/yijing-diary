@@ -18,48 +18,8 @@ st.caption("文王卦序 · 个人解卦笔记 · 一键导出 Markdown")
 # load_gua_data() 函数
 
 # （如果缺少，回复“完整展开版”我立刻给你全部展开好的 3000+ 行代码）
-NOTES_FILE = "user_gua_notes.json"
+# ====================== 核心数据与函数（必须完整复制） ======================
 
-def load_user_notes():
-    """加载用户备注（支持多条历史 + 旧格式自动迁移）"""
-    if os.path.exists(NOTES_FILE):
-        with open(NOTES_FILE, 'r', encoding='utf-8') as f:
-            raw = json.load(f)
-        notes = {}
-        for k, v in raw.items():
-            if isinstance(v, str):                    # 旧版单条字符串 → 转为列表
-                notes[k] = [{"timestamp": "2025-迁移旧记录", "note": v}]
-            elif isinstance(v, list):
-                notes[k] = v
-            else:
-                notes[k] = []
-        return notes
-    return {}
-
-def save_user_notes(notes):
-    """保存（列表格式）"""
-    with open(NOTES_FILE, 'w', encoding='utf-8') as f:
-        json.dump(notes, f, ensure_ascii=False, indent=2)
-
-
-def export_to_markdown(history_list):
-    """导出为 Markdown 文件"""
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H%M")
-    filename = f"我的易经打卦日记_{timestamp}.md"
-
-    with open(filename, 'w', encoding='utf-8') as f:
-        f.write("# 我的易经打卦日记\n\n")
-        f.write(f"**导出时间**：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-        f.write(f"**总记录数**：{len(history_list)} 条\n\n")
-        f.write("---\n\n")
-
-        for h in history_list:
-            f.write(f"### {h['timestamp']}　{h['gua']}（{h['symbol']}） 第{h['line']}爻\n")
-            f.write(f"**备注**：\n{h['note']}\n\n")
-            f.write("---\n\n")
-
-    print(f"✅ 已成功导出为 Markdown 文件：\n   {filename}")
-    print("   （可直接用 Obsidian/Notion/Notepad 打开查看）")
 # 地支转数字
 branch_to_num = {
     "子": 1, "丑": 2, "寅": 3, "卯": 4, "辰": 5, "巳": 6,
@@ -72,152 +32,10 @@ num_to_gua = {
     5: "巽", 6: "坎", 7: "艮", 8: "坤"
 }
 
-# 上下卦组合成卦名映射表（示例，仅部分）
-# 实际使用时应包含全部64卦组合
-# === 替换整个 gua_index 为下面这个（已按标准上下卦 + MD 精确匹配）===
-gua_index = {
-    ("乾", "乾"): "乾为天",
-    ("乾", "兑"): "天泽履",
-    ("乾", "离"): "天火同人",
-    ("乾", "震"): "天雷无妄",
-    ("乾", "巽"): "天风姤",
-    ("乾", "坎"): "天水讼",
-    ("乾", "艮"): "天山遯",
-    ("乾", "坤"): "天地否",
-
-    ("兑", "乾"): "泽天夬",
-    ("兑", "兑"): "兑为泽",
-    ("兑", "离"): "泽火革",
-    ("兑", "震"): "泽雷随",
-    ("兑", "巽"): "泽风大过",
-    ("兑", "坎"): "泽水困",
-    ("兑", "艮"): "泽山咸",
-    ("兑", "坤"): "泽地萃",
-
-    ("离", "乾"): "火天大有",
-    ("离", "兑"): "火泽睽",
-    ("离", "离"): "离为火",
-    ("离", "震"): "火雷噬嗑",
-    ("离", "巽"): "火风鼎",
-    ("离", "坎"): "火水未济",
-    ("离", "艮"): "火山旅",
-    ("离", "坤"): "火地晋",
-
-    ("震", "乾"): "雷天大壮",
-    ("震", "兑"): "雷泽归妹",
-    ("震", "离"): "雷火丰",
-    ("震", "震"): "震为雷",
-    ("震", "巽"): "雷风恒",
-    ("震", "坎"): "雷水解",
-    ("震", "艮"): "雷山小过",
-    ("震", "坤"): "雷地豫",
-
-    ("巽", "乾"): "风天小畜",
-    ("巽", "兑"): "风泽中孚",
-    ("巽", "离"): "风火家人",
-    ("巽", "震"): "风雷益",
-    ("巽", "巽"): "巽为风",
-    ("巽", "坎"): "风水涣",
-    ("巽", "艮"): "风山渐",
-    ("巽", "坤"): "风地观",
-
-    ("坎", "乾"): "水天需",
-    ("坎", "兑"): "水泽节",
-    ("坎", "离"): "水火既济",
-    ("坎", "震"): "水雷屯",
-    ("坎", "巽"): "水风井",
-    ("坎", "坎"): "坎为水",
-    ("坎", "艮"): "水山蹇",
-    ("坎", "坤"): "水地比",
-
-    ("艮", "乾"): "山天大畜",
-    ("艮", "兑"): "山泽损",
-    ("艮", "离"): "山火贲",
-    ("艮", "震"): "山雷颐",
-    ("艮", "巽"): "山风蛊",
-    ("艮", "坎"): "山水蒙",
-    ("艮", "艮"): "艮为山",
-    ("艮", "坤"): "山地剥",
-
-    ("坤", "乾"): "地天泰",
-    ("坤", "兑"): "地泽临",
-    ("坤", "离"): "地火明夷",
-    ("坤", "震"): "地雷复",
-    ("坤", "巽"): "地风升",
-    ("坤", "坎"): "地水师",
-    ("坤", "艮"): "地山谦",
-    ("坤", "坤"): "坤为地",
-}
-gua_symbol = {
-    "乾为天": "䷀",
-    "坤为地": "䷁",
-    "水雷屯": "䷂",
-    "山水蒙": "䷃",
-    "水天需": "䷄",
-    "天水讼": "䷅",
-    "地水师": "䷆",
-    "水地比": "䷇",
-    "风天小畜": "䷈",
-    "天泽履": "䷉",
-    "地天泰": "䷊",
-    "天地否": "䷋",
-    "天火同人": "䷌",
-    "火天大有": "䷍",
-    "地山谦": "䷎",
-    "雷地豫": "䷏",
-    "泽雷随": "䷐",
-    "山风蛊": "䷑",
-    "地泽临": "䷒",
-    "风地观": "䷓",
-    "火雷噬嗑": "䷔",
-    "山火贲": "䷕",
-    "山地剥": "䷖",
-    "地雷复": "䷗",
-    "天雷无妄": "䷘",
-    "山天大畜": "䷙",
-    "山雷颐": "䷚",
-    "泽风大过": "䷛",
-    "水水坎": "䷜",
-    "火火离": "䷝",
-    "泽山咸": "䷞",
-    "雷风恒": "䷟",
-    "天山遯": "䷠",
-    "雷天大壮": "䷡",
-    "火地晋": "䷢",
-    "地火明夷": "䷣",
-    "风火家人": "䷤",
-    "火泽睽": "䷥",
-    "水山蹇": "䷦",
-    "雷水解": "䷧",
-    "山泽损": "䷨",
-    "风雷益": "䷩",
-    "泽天夬": "䷪",
-    "天风姤": "䷫",
-    "泽地萃": "䷬",
-    "地风升": "䷭",
-    "泽水困": "䷮",
-    "水风井": "䷯",
-    "泽火革": "䷰",
-    "火风鼎": "䷱",
-    "震为雷": "䷲",
-    "艮为山": "䷳",
-    "风山渐": "䷴",
-    "雷泽归妹": "䷵",
-    "雷火丰": "䷶",
-    "火山旅": "䷷",
-    "巽为风": "䷸",
-    "兑为泽": "䷹",
-    "风水涣": "䷺",
-    "水泽节": "䷻",
-    "风泽中孚": "䷼",
-    "雷山小过": "䷽",
-    "水火既济": "䷾",
-    "火水未济": "䷿",
-}
 # 时辰转地支
 shichen_table = [
     (23, 1, "子"), (1, 3, "丑"), (3, 5, "寅"), (5, 7, "卯"),
-    (7, 9, "辰"), (9, 11, "巳"), (11, 13, "午"), (13, 15, "未"),
+    (7, 9, "辰"), (9, 11, "巽"), (11, 13, "午"), (13, 15, "未"),
     (15, 17, "申"), (17, 19, "酉"), (19, 21, "戌"), (21, 23, "亥")
 ]
 
@@ -225,32 +43,79 @@ def get_shichen(hour):
     for start, end, branch in shichen_table:
         if start <= hour < end or (start > end and (hour >= start or hour < end)):
             return branch
-    return "子"  # 默认子时
+    return "子"
 
 def get_gua_info(year, month, day, hour):
     solar = Solar.fromYmd(year, month, day)
     lunar = solar.getLunar()
-
-    # 提取农历年地支
     lunar_year_branch = lunar.getYearInGanZhi()[1]
     lunar_year_num = branch_to_num[lunar_year_branch]
     lunar_month = lunar.getMonth()
     lunar_day = lunar.getDay()
-
     shichen = get_shichen(hour)
     shichen_num = branch_to_num[shichen]
-
     base = lunar_year_num + lunar_month + lunar_day
     upper_index = base % 8 or 8
     lower_index = (base + shichen_num) % 8 or 8
     changing_line = (base + shichen_num) % 6 or 6
-
     upper = num_to_gua[upper_index]
     lower = num_to_gua[lower_index]
     gua_name = gua_index.get((upper, lower), f"{upper}{lower}")
-
     return gua_name, changing_line
 
+# === 完整64卦映射（已匹配MD原文）===
+gua_index = {
+    ("乾", "乾"): "乾为天", ("乾", "兑"): "天泽履", ("乾", "离"): "天火同人",
+    ("乾", "震"): "天雷无妄", ("乾", "巽"): "天风姤", ("乾", "坎"): "天水讼",
+    ("乾", "艮"): "天山遯", ("乾", "坤"): "天地否",
+    ("兑", "乾"): "泽天夬", ("兑", "兑"): "兑为泽", ("兑", "离"): "泽火革",
+    ("兑", "震"): "泽雷随", ("兑", "巽"): "泽风大过", ("兑", "坎"): "泽水困",
+    ("兑", "艮"): "泽山咸", ("兑", "坤"): "泽地萃",
+    ("离", "乾"): "火天大有", ("离", "兑"): "火泽睽", ("离", "离"): "火火离",
+    ("离", "震"): "火雷噬嗑", ("离", "巽"): "火风鼎", ("离", "坎"): "火水未济",
+    ("离", "艮"): "火山旅", ("离", "坤"): "火地晋",
+    ("震", "乾"): "雷天大壮", ("震", "兑"): "雷泽归妹", ("震", "离"): "雷火丰",
+    ("震", "震"): "震为雷", ("震", "巽"): "雷风恒", ("震", "坎"): "雷水解",
+    ("震", "艮"): "雷山小过", ("震", "坤"): "雷地豫",
+    ("巽", "乾"): "风天小畜", ("巽", "兑"): "风泽中孚", ("巽", "离"): "风火家人",
+    ("巽", "震"): "风雷益", ("巽", "巽"): "巽为风", ("巽", "坎"): "风水涣",
+    ("巽", "艮"): "风山渐", ("巽", "坤"): "风地观",
+    ("坎", "乾"): "水天需", ("坎", "兑"): "水泽节", ("坎", "离"): "水火既济",
+    ("坎", "震"): "水雷屯", ("坎", "巽"): "水风井", ("坎", "坎"): "水水坎",
+    ("坎", "艮"): "水山蹇", ("坎", "坤"): "水地比",
+    ("艮", "乾"): "山天大畜", ("艮", "兑"): "山泽损", ("艮", "离"): "山火贲",
+    ("艮", "震"): "山雷颐", ("艮", "巽"): "山风蛊", ("艮", "坎"): "山水蒙",
+    ("艮", "艮"): "艮为山", ("艮", "坤"): "山地剥",
+    ("坤", "乾"): "地天泰", ("坤", "兑"): "地泽临", ("坤", "离"): "地火明夷",
+    ("坤", "震"): "地雷复", ("坤", "巽"): "地风升", ("坤", "坎"): "地水师",
+    ("坤", "艮"): "地山谦", ("坤", "坤"): "坤为地",
+}
+
+# === 卦象符号映射 ===
+gua_symbol = {
+    "乾为天": "䷀", "坤为地": "䷁", "水雷屯": "䷂", "山水蒙": "䷃",
+    "水天需": "䷄", "天水讼": "䷅", "地水师": "䷆", "水地比": "䷇",
+    "风天小畜": "䷈", "天泽履": "䷉", "地天泰": "䷊", "天地否": "䷋",
+    "天火同人": "䷌", "火天大有": "䷍", "地山谦": "䷎", "雷地豫": "䷏",
+    "泽雷随": "䷐", "山风蛊": "䷑", "地泽临": "䷒", "风地观": "䷓",
+    "火雷噬嗑": "䷔", "山火贲": "䷕", "山地剥": "䷖", "地雷复": "䷗",
+    "天雷无妄": "䷘", "山天大畜": "䷙", "山雷颐": "䷚", "泽风大过": "䷛",
+    "水水坎": "䷜", "火火离": "䷝", "泽山咸": "䷞", "雷风恒": "䷟",
+    "天山遯": "䷠", "雷天大壮": "䷡", "火地晋": "䷢", "地火明夷": "䷣",
+    "风火家人": "䷤", "火泽睽": "䷥", "水山蹇": "䷦", "雷水解": "䷧",
+    "山泽损": "䷨", "风雷益": "䷩", "泽天夬": "䷪", "天风姤": "䷫",
+    "泽地萃": "䷬", "地风升": "䷭", "泽水困": "䷮", "水风井": "䷯",
+    "泽火革": "䷰", "火风鼎": "䷱", "震为雷": "䷲", "艮为山": "䷳",
+    "风山渐": "䷴", "雷泽归妹": "䷵", "雷火丰": "䷶", "火山旅": "䷷",
+    "巽为风": "䷸", "兑为泽": "䷹", "风水涣": "䷺", "水泽节": "䷻",
+    "风泽中孚": "䷼", "雷山小过": "䷽", "水火既济": "䷾", "火水未济": "䷿",
+}
+
+# === 你的完整MD_DATA（周易原文）===
+# 请把你原来CLI版本里的 MD_DATA = """ ... """ 全文（从 # 周易六十四卦 到文档结束）粘贴在这里
+# （如果太长，可先留空，后面我再给你分段，但最好一次性粘贴）
+
+# load_gua_data 函数（保持你原来的）
 # === 基础数据纳入：完整MD文档嵌入为字符串 ===
 MD_DATA = """
 # 周易六十四卦  
@@ -1100,302 +965,25 @@ MD_DATA = """
 如需添加彖辞/象辞/白话译文/卦象图，请告诉我，我可扩展版本！  
 """
 def load_gua_data():
-    """从嵌入的MD_DATA直接解析卦辞与爻辞（无需Excel文件）"""
     gua_text = {}
-    # 按###分节（保留标题行）
     sections = re.split(r'(?=### \d+\.)', MD_DATA)
     for section in sections:
         if not section.strip() or not section.startswith('###'):
             continue
-        # 提取卦名（）后面的部分）
         gua_name_match = re.search(r'）\s*([^\n]+)', section)
         if not gua_name_match:
             continue
         gua_name = gua_name_match.group(1).strip()
         gua_text[gua_name] = {"卦辞": "", "爻辞": {}}
-        # 提取卦辞
         gua_ci_match = re.search(r'\*\*卦辞\*\*：\s*(.+?)(?=\*\*爻辞\*\*：)', section, re.DOTALL)
         if gua_ci_match:
             gua_text[gua_name]["卦辞"] = gua_ci_match.group(1).strip()
-        # 提取爻辞（只取1-6爻，忽略用九/用六）
         yao_matches = re.findall(r'(\d+)\.\s*(.+?)\n', section)
         for num_str, full_line in yao_matches:
             yao_num = int(num_str)
-            # 清理：只保留“：”后面的爻辞文本
-            if '：' in full_line:
-                yao_ci = full_line.split('：', 1)[1].strip()
-            else:
-                yao_ci = full_line.strip()
+            yao_ci = full_line.split('：', 1)[1].strip() if '：' in full_line else full_line.strip()
             gua_text[gua_name]["爻辞"][yao_num] = yao_ci
     return gua_text
-
-if __name__ == "__main__":
-    # 预先加载一次卦辞数据和符号（全局使用）
-    gua_text = load_gua_data()
-
-    while True:
-        print("\n" + "="*60)
-        print("          易经打卦日记 v2.0（带历史备注）")
-        print("="*60)
-        print("1. 新打一卦（日期起卦 + 记备注）")
-        print("2. 查看所有历史备注（按日期倒序）")
-        print("3. 退出程序")
-        choice = input("\n请选择功能（1/2/3）：").strip()
-
-        if choice == "3":
-            print("感谢使用！再见～")
-            break
-
-        elif choice == "1":
-            # ==================== 打卦流程 ====================
-            y = int(input("请输入年份（阳历）："))
-            m = int(input("请输入月份："))
-            d = int(input("请输入日期："))
-            h = int(input("请输入小时（24小时制）："))
-
-            gua_name, line = get_gua_info(y, m, d, h)
-            symbol = gua_symbol.get(gua_name, "")
-
-            print(f"\n{'='*60}")
-            print(f"卦名：{gua_name}（{symbol}），变爻：第{line}爻")
-            print(f"{'='*60}")
-
-            if gua_name in gua_text:
-                print("卦辞：", gua_text[gua_name]["卦辞"])
-                print(f"爻辞（第{line}爻）：", gua_text[gua_name]["爻辞"].get(line, "无对应爻辞"))
-
-                notes = load_user_notes()
-                key = f"{gua_name}_{line}"
-
-                # 显示本卦本爻的所有历史备注（最新在上）
-                if key in notes and notes[key]:
-                    print(f"\n【您对本卦本爻的历史备注】（最新在上）：")
-                    for entry in reversed(notes[key]):
-                        print(f"  {entry['timestamp']}：")
-                        print(f"  {entry['note']}")
-                        print("  ──")
-
-                # 输入新备注（追加）
-                print("\n请输入您的解卦备注（新记录）：")
-                user_note = input("（直接回车 = 跳过；输入“删除” = 清空本卦本爻所有历史）：").strip()
-
-                if user_note == "删除":
-                    if key in notes:
-                        del notes[key]
-                        save_user_notes(notes)
-                        print("✅ 本卦本爻所有历史备注已删除")
-                elif user_note:
-                    if key not in notes:
-                        notes[key] = []
-                    notes[key].append({
-                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                        "note": user_note
-                    })
-                    save_user_notes(notes)
-                    print("✅ 新备注已追加保存！")
-                else:
-                    print("（本次未新增备注）")
-
-            else:
-                print("未找到对应卦辞信息。")
-
-
-        elif choice == "2":
-
-            # ==================== 查看历史 + 子菜单 ====================
-
-            notes = load_user_notes()
-
-            if not notes:
-                print("暂无任何历史备注～快去打卦记录吧！")
-
-                continue
-
-            # 构建带序号的完整历史列表（包含 key 和 list_idx 用于精准删除）
-
-            history_list = []
-
-            for key, entries in notes.items():
-
-                if not entries:
-                    continue
-
-                gua_name_part, line_str = key.rsplit("_", 1)
-
-                line_num = int(line_str)
-
-                for list_idx, entry in enumerate(entries):
-                    history_list.append({
-
-                        "timestamp": entry["timestamp"],
-
-                        "gua": gua_name_part,
-
-                        "symbol": gua_symbol.get(gua_name_part, ""),
-
-                        "line": line_num,
-
-                        "note": entry["note"],
-
-                        "key": key,
-
-                        "list_idx": list_idx
-
-                    })
-
-            history_list.sort(key=lambda x: x["timestamp"], reverse=True)
-
-
-            def show_list(lst):
-
-                print(f"\n共找到 {len(lst)} 条历史解卦记录（最新在前）：\n")
-
-                for i, h in enumerate(lst, 1):
-                    print(f"{i:2d}. {h['timestamp']}   {h['gua']}（{h['symbol']}） 第{h['line']}爻")
-
-                    print(f"    {h['note']}")
-
-                    print("-" * 60)
-
-
-            show_list(history_list)
-
-            # ==================== 子菜单循环 ====================
-
-            while True:
-
-                print("\n" + "=" * 40)
-
-                print("历史记录操作菜单")
-
-                print("=" * 40)
-
-                print("A. 导出全部为 Markdown 文件")
-
-                print("B. 按卦名筛选查看")
-
-                print("C. 删除单条记录（输入序号）")
-
-                print("D. 返回主菜单")
-
-                sub = input("\n请选择操作（A/B/C/D）：").upper().strip()
-
-                if sub == "D":
-
-                    break
-
-
-                elif sub == "A":
-
-                    if history_list:
-
-                        export_to_markdown(history_list)
-
-                    else:
-
-                        print("没有记录可导出")
-
-
-                elif sub == "B":
-
-                    filter_gua = input("请输入卦名（支持模糊，如“乾”“天山遯”“雷”）：").strip()
-
-                    if not filter_gua:
-
-                        print("未输入，显示全部")
-
-                        filtered = history_list
-
-                    else:
-
-                        filtered = [h for h in history_list if filter_gua in h['gua']]
-
-                    if filtered:
-
-                        show_list(filtered)
-
-                    else:
-
-                        print(f"没有找到包含“{filter_gua}”的记录")
-
-
-                elif sub == "C":
-
-                    if not history_list:
-                        print("没有记录可删除")
-
-                        continue
-
-                    try:
-
-                        num = int(input(f"请输入要删除的序号（1~{len(history_list)}）："))
-
-                        if 1 <= num <= len(history_list):
-
-                            target = history_list[num - 1]
-
-                            key = target["key"]
-
-                            list_idx = target["list_idx"]
-
-                            if key in notes and 0 <= list_idx < len(notes[key]):
-
-                                deleted_note = notes[key].pop(list_idx)
-
-                                if not notes[key]:
-                                    del notes[key]
-
-                                save_user_notes(notes)
-
-                                print(f"✅ 已删除第 {num} 条记录：")
-
-                                print(f"   {deleted_note['timestamp']} {target['gua']} 第{target['line']}爻")
-
-                                # 删除后刷新列表
-
-                                print("\n列表已刷新：")
-
-                                # 重新构建 history_list（避免引用问题）
-
-                                history_list = []  # 重新加载
-
-                                for k, ents in notes.items():
-
-                                    g, lstr = k.rsplit("_", 1)
-
-                                    ln = int(lstr)
-
-                                    for idx, e in enumerate(ents):
-                                        history_list.append({
-
-                                            "timestamp": e["timestamp"], "gua": g,
-
-                                            "symbol": gua_symbol.get(g, ""), "line": ln,
-
-                                            "note": e["note"], "key": k, "list_idx": idx
-
-                                        })
-
-                                history_list.sort(key=lambda x: x["timestamp"], reverse=True)
-
-                                show_list(history_list)
-
-                            else:
-
-                                print("记录已不存在")
-
-                        else:
-
-                            print("序号超出范围")
-
-                    except ValueError:
-
-                        print("请输入数字序号")
-
-
-                else:
-
-                    print("输入有误，请输入 A/B/C/D")
 
 # ====================== Streamlit 专用函数 ======================
 if 'notes' not in st.session_state:
